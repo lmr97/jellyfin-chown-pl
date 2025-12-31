@@ -86,6 +86,8 @@ uv tool install ./jellyfin_chown_pl
     echo "export JELLYFIN_API_KEY=$JELLYFIN_API_KEY" >> ~/.bashrc
     ```
 
+## Usage (short form)
+
 ```
 jfchownpl [-h] [-d DATABASE] -s SERVER_URL (-p PLAYLISTS | --all-playlists | --all-unowned) -u USER [-v] [--debug]
 ```
