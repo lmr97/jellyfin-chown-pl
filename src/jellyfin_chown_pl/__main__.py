@@ -15,7 +15,7 @@ def fmt_list(l: list[str]) -> str:
     indent  = "    "
     fmt_str = f"\n{indent}{bullet} ". join(l)
 
-    return f"\n{indent}{bullet}" + fmt_str + "\n"
+    return f"\n{indent}{bullet} " + fmt_str + "\n"
 
 
 
@@ -74,7 +74,7 @@ def change_playist_owner_single(cursor: sqlite3.Cursor, user_id: str, playlist: 
 
 
 
-def change_playist_owner_many(cursor: sqlite3.Cursor, user_id: str, playlists: list[str], lax_mode: bool=False):
+def change_playist_owner_many(cursor: sqlite3.Cursor, user_id: str, playlists: list[str]):
     """
     Docstring for change_playist_owner_many
     
@@ -84,8 +84,6 @@ def change_playist_owner_many(cursor: sqlite3.Cursor, user_id: str, playlists: l
     :type user_id: str
     :param playlists: List of playlist names
     :type playlists: list[str]
-    :param lax_mode: Whether to warn instead of throwing an error if a playlist is not found. Defaults to False.
-    :type lax_mode: bool
     """
     playlist_param_maps = [ 
         {'playlist_name': pl, 'data_with_new_uid': None} for pl in playlists 
@@ -107,15 +105,11 @@ def change_playist_owner_many(cursor: sqlite3.Cursor, user_id: str, playlists: l
     if len(all_pl_raw) < len(playlists):
         # okay, then which ones?
         found_playlists   = [ pl_row[0] for pl_row in all_pl_raw ]
-        unfound_playlists = set(playlists) - set(found_playlists)
-
-        if lax_mode:
-            print(f"{WARN_YELLOW}: The playlist(s) following playlists were "
-                  f"not found in the database as given: {unfound_playlists}\n"
-                  f"Proceeding with the operation for: {found_playlists}")
+        unfound_playlists = list(set(playlists) - set(found_playlists))
         
         raise LookupError(
-            f"The playlist(s) {unfound_playlists} was not found in the database as given, "
+            "Could not find these playlists were in "
+            f"the database as given: {fmt_list(unfound_playlists)}"
             "so its ownership could not be updated. Aborting..."
         )
 
@@ -196,9 +190,9 @@ def fetch_user_id(server_url: str, username: str) -> str:
 
     if not api_token:
         raise Exception(
-            "API Key not found in environment (JELLYFIN_API_KEY). \
-            See setup instruction in repo README file on how to set \
-            one up."
+            "API Key not found in environment (JELLYFIN_API_KEY)." + 
+            "See setup instruction in repo README file on how to set" + 
+            "one up."
             )
     
     curl = pycurl.Curl()
@@ -251,8 +245,10 @@ def parse_args(program_args: list[str]) -> Namespace:
                     type=str,
                     default=get_default_db_path(),
                     required=False,
-                    help="The path to the library.db SQLite database. Will try to \
-                        read from the default Jellyfin Data Directory if omitted."
+                    help="The path to the library.db SQLite database. Will try to" + 
+                        "read from the default Jellyfin Data Directory if omitted." +
+                        "see https://jellyfin.org/docs/general/administration/" +
+                        "configuration/#data-directory for details."
                     )
     
     ap.add_argument('-s','--server-url',
@@ -265,10 +261,9 @@ def parse_args(program_args: list[str]) -> Namespace:
     req_one_of.add_argument(
         '-p','--playlist',
         dest="playlists",
-        help=f"The name of the playlist for which to change ownership \
-            (case sensitive). This option can be repeated for multiple \
-            playlists. For directories of playlists, see the \
-            {pl_dir_opt} option.",
+        help="The name of the playlist for which to change ownership " +
+            "(case sensitive). This option can be repeated for multiple " +
+            "playlists.",
         action="append"
         )
     
@@ -276,17 +271,16 @@ def parse_args(program_args: list[str]) -> Namespace:
         '--all-playlists',
         default=False,
         action='store_true',
-        help="Change ownership of all the server's playlists, regardless of current \
-            owner, to the user specified by --user. Any playlists passed via \
-            --playlist are ignored."
+        help="Change ownership of all the server's playlists, regardless of current" + 
+            "owner, to the user specified by --user. Cannot be used with --playlist."
         )
     
     req_one_of.add_argument(
         '--all-unowned',
         default=False,
         action='store_true',
-        help="Change ownership of all the server's playlists without an owner to the \
-            user specified by --user. Any playlists passed via --playlist are ignored."
+        help="Change ownership of all the server's playlists without an owner to the" + 
+            "user specified by --user. Cannot be used with --playlist."
         )
     
     # ap.add_argument('-l','--playlist-dir',
@@ -298,19 +292,19 @@ def parse_args(program_args: list[str]) -> Namespace:
     ap.add_argument('-u', '--user',
                     type=str,
                     required=True,
-                    help="The user who will be the new owner of (all) the given playlist(s). \
-                        Only one user can be specified: to map different playlists to \
-                        different users, this program must be executed once for each \
-                        distinct user."
+                    help="The user who will be the new owner of (all) the given playlist(s)." + 
+                        "Only one user can be specified: to map different playlists to" + 
+                        "different users, this program must be executed once for each" + 
+                        "distinct user."
                     )
 
-    ap.add_argument('--lax',
-                    default=False,
-                    action='store_true',
-                    required=False,
-                    help="Only warn on failed playlist ownership change operation, instead of \
-                        throw an error and crash."
-                    )
+    # ap.add_argument('--lax',
+    #                 default=False,
+    #                 action='store_true',
+    #                 required=False,
+    #                 help="Only warn on failed playlist ownership change operation, instead of" + "
+    #                     throw an error and crash."
+    #                 )
     
     ap.add_argument('-v', '--version', 
                     action="version", 
@@ -322,8 +316,9 @@ def parse_args(program_args: list[str]) -> Namespace:
                     default=False,
                     action='store_true',
                     required=False,
-                    help="This option lets the program crash fully, so a stack \
-                        trace will be printed to the console."
+                    help="This option lets the program crash fully, so a stack" + 
+                        "trace will be printed to the console. Closes database " +
+                        "connection if open."
                     )
 
     parsed_cli_args = ap.parse_args(program_args)
@@ -332,8 +327,8 @@ def parse_args(program_args: list[str]) -> Namespace:
     if not parsed_cli_args.database:
         raise FileNotFoundError(
             2, "Database not found",
-            "Could not infer library database location from environment, \
-            and no filepath to it was provided on the command line."
+            "Could not infer library database location from environment," + 
+            "and no filepath to it was provided on the command line."
             )
 
     return parsed_cli_args
@@ -343,11 +338,24 @@ def parse_args(program_args: list[str]) -> Namespace:
 def main():
 
     cli_args = parse_args(sys.argv[1:])
-    user_id  = fetch_user_id(cli_args.server_url, cli_args.user)
 
     try:
+        user_id  = fetch_user_id(cli_args.server_url, cli_args.user)
+    except Exception as e:
+        print(f"{ERROR_RED}: Error fetching user ID:", 
+              e, file=sys.stderr
+              )
+        sys.exit(1)
+
+    try:
+        if not os.path.exists(cli_args.database):
+            raise FileNotFoundError(
+                2, "Database not found",
+                f"{cli_args.database} doesn't exist."
+                )
         conn = sqlite3.connect(cli_args.database)
-    except sqlite3.DatabaseError as dbe:
+
+    except Exception as dbe:
         
         # just crash, hard
         if cli_args.debug:
@@ -381,19 +389,21 @@ def main():
             raise e
         
         pls_fmt_str = fmt_list(cli_args.playlists) if cli_args.playlists else "(all)"
+        
         print(f"{ERROR_RED}: Playlist ownership could not be changed for "
-              f"playlist set {pls_fmt_str} due to the following:", 
-              e, file=sys.stderr
-              )
+            f"playlist set {pls_fmt_str}due to the following:\n\n", 
+            e, file=sys.stderr
+            )
+        
         conn.close()
         sys.exit(1)
 
     conn.commit()
     conn.close()
 
-    print(f"[\033[0;32m Ownership updated! \033[0m] "
-          f"Updated to \033[1m{cli_args.user}\033[0m "
-          "for playlist set: {fmt_list(cli_args.playlists)}"
+    print(f"[\033[0;32m Ownership updated!" + "033[0m] "
+          f"Updated to" + "033[1m{cli_args.user}\033[0m "
+          f"for playlist set: {fmt_list(cli_args.playlists)}"
           )
 
 
