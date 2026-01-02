@@ -1,6 +1,6 @@
 [project]
 name = "jellyfin-chown-pl"
-version = "1.0.0"
+version = "1.1.0"
 description = "Change the owner of a playlist in Jellyfin."
 authors = [
     {name = "Martin Reid",email = "lmreid1997@gmail.com"}
