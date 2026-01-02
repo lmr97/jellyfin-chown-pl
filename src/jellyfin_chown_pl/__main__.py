@@ -110,8 +110,8 @@ def change_playist_owner_many(cursor: sqlite3.Cursor, user_id: str, playlists: l
         unfound_playlists = list(set(playlists) - set(found_playlists))
         
         raise LookupError(
-            "Could not find these playlists were in "
-            f"the database as given: {fmt_list(unfound_playlists)}"
+            "Could not find these playlists were in " +
+            f"the database as given: {fmt_list(unfound_playlists)} " +
             "so its ownership could not be updated. Aborting..."
         )
 
@@ -206,8 +206,8 @@ def fetch_all_user_info(server_url: str) -> list[dict]:
 
     if not api_token:
         raise Exception(
-            "API Key not found in environment (JELLYFIN_API_KEY)." + 
-            "See setup instruction in repo README file on how to set" + 
+            "API Key not found in environment (JELLYFIN_API_KEY). " + 
+            "See setup instructions in repo README file on how to set " + 
             "one up."
             )
     
@@ -270,9 +270,9 @@ def parse_args(program_args: list[str]) -> Namespace:
                     type=str,
                     default=get_default_db_path(),
                     required=False,
-                    help="The path to the library.db SQLite database. Will try to" + 
-                        "read from the default Jellyfin Data Directory if omitted." +
-                        "see https://jellyfin.org/docs/general/administration/" +
+                    help="The path to the library.db SQLite database. Will try to " + 
+                        "read from the default Jellyfin Data Directory if omitted. " +
+                        "see https://jellyfin.org/docs/general/administration/ " +
                         "configuration/#data-directory for details."
                     )
     
@@ -296,7 +296,7 @@ def parse_args(program_args: list[str]) -> Namespace:
         '--all-playlists',
         default=False,
         action='store_true',
-        help="Change ownership of all the server's playlists, regardless of current" + 
+        help="Change ownership of all the server's playlists, regardless of current " + 
             "owner, to the user specified by --user. Cannot be used with --playlist."
         )
     
@@ -317,9 +317,9 @@ def parse_args(program_args: list[str]) -> Namespace:
     ap.add_argument('-u', '--user',
                     type=str,
                     required=True,
-                    help="The user who will be the new owner of (all) the given playlist(s)." + 
-                        "Only one user can be specified: to map different playlists to" + 
-                        "different users, this program must be executed once for each" + 
+                    help="The user who will be the new owner of (all) the given playlist(s). " + 
+                        "Only one user can be specified: to map different playlists to " + 
+                        "different users, this program must be executed once for each " + 
                         "distinct user."
                     )
 
@@ -341,7 +341,7 @@ def parse_args(program_args: list[str]) -> Namespace:
                     default=False,
                     action='store_true',
                     required=False,
-                    help="This option lets the program crash fully, so a stack" + 
+                    help="This option lets the program crash fully, so a stack " + 
                         "trace will be printed to the console. Closes database " +
                         "connection if open."
                     )
@@ -352,7 +352,7 @@ def parse_args(program_args: list[str]) -> Namespace:
     if not parsed_cli_args.database:
         raise FileNotFoundError(
             2, "Database not found",
-            "Could not infer library database location from environment," + 
+            "Could not infer library database location from environment, " + 
             "and no filepath to it was provided on the command line."
             )
 
@@ -392,8 +392,8 @@ def main():
         if cli_args.debug:
             raise dbe
         
-        print(f"{ERROR_RED}: The database could not be opened, "
-              "due to the following error:", 
+        print(f"{ERROR_RED}: The database could not be opened, " +
+              "due to the following error: ", 
               dbe, file=sys.stderr
               )
         sys.exit(1)
