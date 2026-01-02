@@ -3,6 +3,7 @@ import sys
 import importlib.metadata
 from argparse import ArgumentParser, Namespace
 import json
+import http
 import sqlite3
 import pycurl
 
@@ -214,8 +215,19 @@ def fetch_all_user_info(server_url: str) -> list[dict]:
     curl = pycurl.Curl()
     curl.setopt(pycurl.HTTPHEADER, [f"Authorization: MediaBrowser Token={api_token}"])
     curl.setopt(pycurl.URL, f"{server_url}/Users")
-    
+
     users_raw_str = curl.perform_rs()
+    resp_code     = curl.getinfo(pycurl.HTTP_CODE)
+
+    if resp_code != 200:
+        reason_phrase = http.HTTPStatus(resp_code).phrase
+        err_body = users_raw_str if users_raw_str else "(none)"
+        raise Exception(
+            "Issue accessing your Jellyfin server's API.\n" +
+            f"Status code: {resp_code} {reason_phrase}\nMessage: {err_body}"
+            )
+
+    curl.close()
     return json.loads(users_raw_str)
 
 
