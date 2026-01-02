@@ -1,0 +1,22 @@
+name: jellyfin-chown-pl
+services: 
+  jf-chown-pl:
+    image: lmr97/jellyfin-chown-pl:latest
+    environment:
+      JELLYFIN_API_KEY: deadbeefdeadbeefdeadbeefdeafbead
+      JELLYFIN_DATA_DIR: /datadir
+    volumes:
+      - jellyfin_data_dir:/datadir
+
+    # if you want to have container alone, the simply remove/comment this section out
+    command: [
+      "jfchownpl",
+      "--server-url", "jellyfin-svr:8096",      # Docker containers share the same network by default, with hostnames set to the container name
+      "--user", "emma",
+      "--all-playlists"
+    ]
+
+volumes:
+  jellyfin_data_dir:
+    # it exists already mounted on the `jellyfin-svr` container
+    external: true    

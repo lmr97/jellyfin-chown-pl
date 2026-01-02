@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jfchownpl
+  labels:
+    app: jfchownpl
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: jfchownpl 
+  template:
+    metadata:
+      labels:
+        app: jfchownpl
+    spec:
+      containers:
+      - name: loader 
+        image: lmr97/jellyfin-chown-pl:latest
+        imagePullPolicy: Always 
+        volumeMounts:
+        - name: jf-data
+          mountPath: /config
+
+      volumes:
+      - name: jf-data
+        persistentVolumeClaim:
+          claimName: jellyfin-data-vol
+          readOnly: false
