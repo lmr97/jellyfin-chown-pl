@@ -70,6 +70,8 @@ uv tool install ./jellyfin_chown_pl
 
 ## Before using: Get an API key
 
+While the playlist ownership changes are done via database queries directly, this app still needs API access to get user IDs from usernames.
+
 1. Open your browser and navigate to your administrator Dashboard
 
 2. Go to the API Keys section and create a new API key.
@@ -100,8 +102,8 @@ Short option | Long option | Description
 `-d DATABASE` | `--database DATABASE` | The path to the library.db SQLite database. Will try to read from the [default Jellyfin Data Directory](https://jellyfin.org/docs/general/administration/configuration/#data-directory) if omitted.
 `-s SERVER_URL` | `--server-url SERVER_URL` | The URL to your Jellyfin server.
 `-p PLAYLIST` | `--playlist PLAYLIST` | The name of the playlist for which to change ownership (case sensitive). This option can be repeated for multiple playlists.
-(none) | `--all-playlists` | Change ownership of all the server's playlists, regardless of currentowner, to the user specified by --user. Cannot be used with --playlist.
-(none) | `--all-unowned` | Change ownership of all the server's playlists without an owner to theuser specified by --user. Cannot be used with --playlist.
+(none) | `--all-playlists` | Change ownership of all the server's playlists, regardless of currentowner, to the user specified with `--user`. Cannot be used with `--playlist`.
+(none) | `--all-unowned` | Change ownership of all the server's playlists without an owner to the user specified with `--user`. Cannot be used with `--playlist`.
 `-u USER` | `--user USER` | The user who will be the new owner of (all) the given playlist(s).Only one user can be specified: to map different playlists todifferent users, this program must be executed once for eachdistinct user.
 `-v` | `--version` | Print version and exit.
 (none) | `--debug` | This option lets the program crash fully, so a stacktrace will be printed to the console. Closes database connection if open.
@@ -144,3 +146,7 @@ jfchownpl \
     --playlist CoolSongs \ 
     --playlist "Even Cooler Songs"
 ```
+
+## Have a Docker or Kubernetes-based setup?
+
+See [CONTAINERS.md](CONTAINERS.md) for details on how to use this on a containerized setup.
