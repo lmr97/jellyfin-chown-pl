@@ -69,6 +69,7 @@ Here's the installation for each of the tools:
 
 ```
 git clone https://github.com/lmr97/jellyfin_chown_pl.git
+cd jellyfin_chown_pl
 pipx install ./jellyfin_chown_pl
 ```
 
