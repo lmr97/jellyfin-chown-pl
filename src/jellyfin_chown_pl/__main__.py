@@ -308,11 +308,6 @@ def parse_args(program_args: list[str]) -> Namespace:
             "owner ID to the user specified by --user. Cannot be used with --playlist."
         )
     
-    # ap.add_argument('-l','--playlist-dir',
-    #                 type=str,
-    #                 required=False,
-    #                 help="Change the user for every playlist in this "
-    #                 )
 
     ap.add_argument('-u', '--user',
                     type=str,
@@ -323,12 +318,15 @@ def parse_args(program_args: list[str]) -> Namespace:
                         "distinct user."
                     )
 
+    """
+    May implement later.
+    """
     # ap.add_argument('--lax',
     #                 default=False,
     #                 action='store_true',
     #                 required=False,
-    #                 help="Only warn on failed playlist ownership change operation, instead of" + "
-    #                     throw an error and crash."
+    #                 help="Only warn on failed playlist ownership change operation, instead of " +
+    #                   "throw an error and crash."
     #                 )
     
     ap.add_argument('-v', '--version', 
