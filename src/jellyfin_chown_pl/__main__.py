@@ -331,11 +331,11 @@ def parse_args(program_args: list[str]) -> Namespace:
     #                     throw an error and crash."
     #                 )
     
-    # ap.add_argument('-v', '--version', 
-    #                 action="version", 
-    #                 version=importlib.metadata.version('jellyfin-chown-pl'),
-    #                 help="Print version and exit."
-    #                 )
+    ap.add_argument('-v', '--version', 
+                    action="version", 
+                    version=importlib.metadata.version('jellyfin-chown-pl'),
+                    help="Print version and exit."
+                    )
     
     ap.add_argument('--debug',
                     default=False,
