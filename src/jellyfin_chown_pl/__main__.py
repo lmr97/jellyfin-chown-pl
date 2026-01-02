@@ -19,7 +19,7 @@ def fmt_list(l: list[str]) -> str:
 
 
 
-def change_playist_owner_single(cursor: sqlite3.Cursor, user_id: str, playlist: str):
+def change_playist_owner_single(cursor: sqlite3.Cursor, user_id: str, playlist: str) -> None:
     """
     Changes the ownership for a single playlist. 
     
@@ -74,7 +74,7 @@ def change_playist_owner_single(cursor: sqlite3.Cursor, user_id: str, playlist: 
 
 
 
-def change_playist_owner_many(cursor: sqlite3.Cursor, user_id: str, playlists: list[str]):
+def change_playist_owner_many(cursor: sqlite3.Cursor, user_id: str, playlists: list[str]) -> None:
     """
     Docstring for change_playist_owner_many
     
@@ -85,6 +85,7 @@ def change_playist_owner_many(cursor: sqlite3.Cursor, user_id: str, playlists: l
     :param playlists: List of playlist names
     :type playlists: list[str]
     """
+
     playlist_param_maps = [ 
         {'playlist_name': pl, 'data_with_new_uid': None} for pl in playlists 
     ]
@@ -103,6 +104,7 @@ def change_playist_owner_many(cursor: sqlite3.Cursor, user_id: str, playlists: l
 
     # check that all playlists were found
     if len(all_pl_raw) < len(playlists):
+
         # okay, then which ones?
         found_playlists   = [ pl_row[0] for pl_row in all_pl_raw ]
         unfound_playlists = list(set(playlists) - set(found_playlists))
@@ -120,8 +122,8 @@ def change_playist_owner_many(cursor: sqlite3.Cursor, user_id: str, playlists: l
     for param_map, raw_json in zip(playlist_param_maps, all_pl_raw):
 
         parsed_json = json.loads(raw_json[1])
-        parsed_json['OwnerUserId'] = user_id
 
+        parsed_json['OwnerUserId'] = user_id
         param_map['data_with_new_uid'] = json.dumps(parsed_json).encode('utf-8')
 
     cursor.executemany(
@@ -137,11 +139,20 @@ def change_playist_owner_many(cursor: sqlite3.Cursor, user_id: str, playlists: l
 
 
 
-def change_playist_owner_all(cursor: sqlite3.Cursor, user_id: str) -> list[str]:
+def change_playist_owner_all(cursor: sqlite3.Cursor, user_id: str, all_user_ids: list[str], unowned_only: bool) -> list[str]:
     """
     Change the owner user all playlists in the database.
 
-    :return: List of all playlist names.
+    :param cursor: Cursor object for database
+    :type cursor: sqlite3.Cursor
+    :param user_id: User ID, a lowercase UUID hexadecimal (without dashes)
+    :type user_id: str
+    :param all_user_ids: all user IDs for users on the server
+    :type list[str]
+    :param unowned_only: Whether to change playlist owners only for playlists that are not owned by any known user
+    :type unowned_only: bool
+
+    :return: List of all playlist names whose owner was changed.
     :rtype: list[str]
     """
     all_pl_rows = cursor.execute(
@@ -160,6 +171,11 @@ def change_playist_owner_all(cursor: sqlite3.Cursor, user_id: str) -> list[str]:
     for pl_row in all_pl_rows:
         
         parsed_json = json.loads(pl_row[1])  # raw binary JSON
+
+        # pass over playlists that are owned by other known users
+        if unowned_only and (parsed_json['OwnerUserId'] in all_user_ids):
+            continue
+
         parsed_json['OwnerUserId'] = user_id
 
         param_maps.append(
@@ -184,7 +200,7 @@ def change_playist_owner_all(cursor: sqlite3.Cursor, user_id: str) -> list[str]:
     return [ p_map['playlist_name'] for p_map in param_maps ]
 
 
-def fetch_user_id(server_url: str, username: str) -> str:
+def fetch_all_user_info(server_url: str) -> list[dict]:
 
     api_token = os.getenv("JELLYFIN_API_KEY")
 
@@ -200,14 +216,23 @@ def fetch_user_id(server_url: str, username: str) -> str:
     curl.setopt(pycurl.URL, f"{server_url}/Users")
     
     users_raw_str = curl.perform_rs()
-    users = json.loads(users_raw_str)
-    
-    for user in users:
+    return json.loads(users_raw_str)
+
+
+def get_user_id(user_info: list[dict], username: str) -> str:
+
+    for user in user_info:
         if user['Name'] == username:
             return user['Id']
     
     raise Exception(f"User '{username}' not found on server.")
 
+
+def get_all_user_ids(user_info: list[dict]) -> list[str]:
+    
+    user_ids = [user['Id'] for user in user_info]
+    
+    return user_ids
 
 
 def get_default_db_path() -> str | None:
@@ -279,8 +304,8 @@ def parse_args(program_args: list[str]) -> Namespace:
         '--all-unowned',
         default=False,
         action='store_true',
-        help="Change ownership of all the server's playlists without an owner to the" + 
-            "user specified by --user. Cannot be used with --playlist."
+        help="Change ownership of all the server's playlists with an unknown " + 
+            "owner ID to the user specified by --user. Cannot be used with --playlist."
         )
     
     # ap.add_argument('-l','--playlist-dir',
@@ -306,11 +331,11 @@ def parse_args(program_args: list[str]) -> Namespace:
     #                     throw an error and crash."
     #                 )
     
-    ap.add_argument('-v', '--version', 
-                    action="version", 
-                    version=importlib.metadata.version('jellyfin-chown-pl'),
-                    help="Print version and exit."
-                    )
+    # ap.add_argument('-v', '--version', 
+    #                 action="version", 
+    #                 version=importlib.metadata.version('jellyfin-chown-pl'),
+    #                 help="Print version and exit."
+    #                 )
     
     ap.add_argument('--debug',
                     default=False,
@@ -340,8 +365,14 @@ def main():
     cli_args = parse_args(sys.argv[1:])
 
     try:
-        user_id  = fetch_user_id(cli_args.server_url, cli_args.user)
+        user_info = fetch_all_user_info(cli_args.server_url)
+        user_id   = get_user_id(user_info, cli_args.user)
+        all_ids   = get_all_user_ids(user_info)
     except Exception as e:
+
+        if cli_args.debug:
+            raise e
+        
         print(f"{ERROR_RED}: Error fetching user ID:", 
               e, file=sys.stderr
               )
@@ -371,15 +402,20 @@ def main():
 
     try: 
 
-        if cli_args.all_playlists:
+        if cli_args.all_playlists or cli_args.all_unowned:
+
             # override playlist list with list of all playlists from database
-            cli_args.playlists = change_playist_owner_all(cursor, user_id)
-            
+            cli_args.playlists = change_playist_owner_all(cursor, user_id, all_ids, cli_args.all_unowned)
+
         elif len(cli_args.playlists) == 1:
             change_playist_owner_single(cursor, user_id, cli_args.playlists[0])
 
         else:
-            change_playist_owner_many(cursor, user_id, cli_args.playlists)
+            change_playist_owner_many(
+                cursor, 
+                user_id, 
+                cli_args.playlists
+            )
         
     except Exception as e:
         
@@ -388,7 +424,7 @@ def main():
             conn.close()
             raise e
         
-        pls_fmt_str = fmt_list(cli_args.playlists) if cli_args.playlists else "(all)"
+        pls_fmt_str = fmt_list(cli_args.playlists) if cli_args.playlists else "(all) "
         
         print(f"{ERROR_RED}: Playlist ownership could not be changed for "
             f"playlist set {pls_fmt_str}due to the following:\n\n", 
@@ -401,12 +437,12 @@ def main():
     conn.commit()
     conn.close()
 
-    print(f"[\033[0;32m Ownership updated!" + "033[0m] "
-          f"Updated to" + "033[1m{cli_args.user}\033[0m "
+    print(f"[\033[0;32m Ownership updated! \033[0m] "
+          f"Updated to \033[1m{cli_args.user}\033[0m "
           f"for playlist set: {fmt_list(cli_args.playlists)}"
           )
 
 
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
