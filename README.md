@@ -149,4 +149,4 @@ jfchownpl \
 
 ## Have a Docker or Kubernetes-based setup?
 
-See [containers](tree/main/containers) for details on how to use this on a containerized setup.
+See [containers](./containers) for details on how to use this on a containerized setup.
